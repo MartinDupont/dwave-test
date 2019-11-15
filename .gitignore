@@ -1,0 +1,5 @@
+.idea
+ocean
+*.pickle
+
+__pycache__/
