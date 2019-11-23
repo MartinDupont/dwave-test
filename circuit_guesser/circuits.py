@@ -168,3 +168,50 @@ def make_input_polynomial(y, z_1_val, z_2_val, s):
         return {(y,): -3,  (y, s): 2, (s,): -2}
 
     return {(y,): -1,  (y, s): 2, (s, ): -1}
+
+def _merge_dicts_and_add(dict1, dict2):
+    output_dict = { key: value for key, value in dict1.items() }
+    for key, value in dict2.items():
+        output_dict[key] = output_dict.get(key, 0) + value
+
+    return output_dict
+
+def merge_dicts_and_add(*args):
+    output = {}
+    for d in args:
+        output = _merge_dicts_and_add(output, d)
+    return output
+
+def make_polynomial_for_datapoint(y_val, x_vals):
+    if len(x_vals) < 3:
+        raise ValueError("Please input a non-trivial amount of x values")
+
+    polynomial = {}
+
+    # First layer
+    layer = ["z_{}".format(i) for i in range(len(x_vals)-1)]
+    s_vals = ["s_{}".format(i) for i in range(len(x_vals)-1)]
+    auxiliary_bit_tally = len(layer)
+    s_bit_tally = len(s_vals)
+    for x_i, x_j, z_i, s in zip(x_vals[0:-1], x_vals[1:], layer, s_vals):
+        polynomial = merge_dicts_and_add(polynomial, make_input_polynomial(z_i, x_i, x_j, s))
+
+    # Middle layers
+    while len(layer) > 2:
+        next_layer = ["z_{}".format(i + auxiliary_bit_tally) for i in range(len(layer)-1)]
+        s_vals = ["s_{}".format(i + s_bit_tally) for i in range(len(layer)-1)]
+        for y, x_i, x_j, s in zip(next_layer, layer[0:-1], layer[1:], s_vals):
+            polynomial = merge_dicts_and_add(polynomial, make_base_polynomial(y, x_i, x_j, s))
+
+        layer = next_layer
+        auxiliary_bit_tally += len(next_layer)
+        s_bit_tally += len(s_vals)
+
+
+    # End layer
+    z_1 = layer[0]
+    z_2 = layer[1]
+    s = "s_{}".format(s_bit_tally)
+    polynomial = merge_dicts_and_add(polynomial, make_output_polynomial(y_val, z_1, z_2, s))
+    return polynomial
+
