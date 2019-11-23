@@ -9,8 +9,8 @@ import re
 import random
 
 # ====================================================================================== #
-run_new = True
-version = 10 ## only used when reading old versions
+run_new = False
+version = 16 ## only used when reading old versions
 n_reads = 100
 anneal_time = 20 ## default is 20
 chain_strength = 2.0 # default is 1.0

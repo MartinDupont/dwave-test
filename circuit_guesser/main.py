@@ -2,6 +2,7 @@ import random
 import dwavebinarycsp
 import itertools
 import circuits as c
+import strategies
 from dwave.system.samplers import DWaveSampler
 from dwave.system.composites import EmbeddingComposite
 import neal
@@ -38,18 +39,17 @@ if __name__ == "__main__":
     weight_variable_names = ["s{}".format(i) for i in range(n_circuit_weights)]
 
     csp = dwavebinarycsp.ConstraintSatisfactionProblem(dwavebinarycsp.BINARY)
-    #csp.add_constraint(constraint_satisfaction_problem, weight_variable_names)
-    csp.add_constraint(c.thingy, ['y', 's', 'x1', 'x2'])
+    csp.add_constraint(constraint_satisfaction_problem, weight_variable_names)
 
-    bqm = dwavebinarycsp.stitch(csp)
-    print(bqm)
     if run_new:
+
+        sampler = EmbeddingComposite(DWaveSampler())
+        strategy = strategies.CspStrategy(n_layers, initial_circuit_weights, sampler)
+        response = strategy.solve(num_reads=n_reads, annealing_time=anneal_time, chain_strength=chain_strength)
 
         dirname = os.path.dirname(__file__)
         results_path = dirname + "/results"
-        # Sample n times
-        sampler = EmbeddingComposite(DWaveSampler())
-        response = sampler.sample(bqm, num_reads=n_reads, annealing_time=anneal_time, chain_strength=chain_strength)
+
         new_version = find_new_lowest_version(results_path)
         pickle.dump(response, open('{}/result{}.pickle'.format(results_path, new_version), "wb"))
         settings = {
@@ -62,8 +62,8 @@ if __name__ == "__main__":
         pickle.dump(response, open('{}/settings{}.pickle'.format(results_path, new_version), "wb"))
     else:
         sampler = neal.SimulatedAnnealingSampler()
-
-        response = sampler.sample(bqm, num_reads=n_reads)
+        strategy = strategies.CspStrategy(n_layers, initial_circuit_weights, sampler)
+        response = strategy.solve(num_reads=n_reads)
 
     print("============================= New run ===============================")
     print("depth: {}".format(n_layers))
