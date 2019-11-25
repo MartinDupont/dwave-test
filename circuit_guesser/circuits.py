@@ -1,5 +1,6 @@
 import itertools
 import random
+import dimod
 
 
 ## maybe replace with an xor gate????
@@ -215,3 +216,17 @@ def make_polynomial_for_datapoint(y_val, x_vals):
     polynomial = merge_dicts_and_add(polynomial, make_output_polynomial(y_val, z_1, z_2, s))
     return polynomial
 
+
+def make_bqm(polynomial, offset):
+    """ polynomial is a dictionary with tuples as keys"""
+
+    linear = {}
+    quadratic = {}
+
+    for key, value in polynomial.items():
+        if len(key) == 1:
+            linear[key[0]] = value
+        else:
+            quadratic[key] = value
+
+    return dimod.BinaryQuadraticModel(linear, quadratic, offset, vartype=dimod.BINARY)
