@@ -148,7 +148,7 @@ class CheckCircuits(unittest.TestCase):
         x_vals = [0, 0, 0]
         y = 0
 
-        polynomial = c.make_polynomial_for_datapoint(y, x_vals)
+        polynomial, _ = c.make_polynomial_for_datapoint(y, x_vals)
 
         first_layer = {
             ("z_0",): 1, ("z_0", "s_0"): 2,
@@ -165,11 +165,12 @@ class CheckCircuits(unittest.TestCase):
         x_vals = [1, 1, 1]
         y = 1
 
-        polynomial = c.make_polynomial_for_datapoint(y, x_vals)
+        polynomial, _ = c.make_polynomial_for_datapoint(y, x_vals)
 
         first_layer = {
             ("z_0",): -3, ("z_0", "s_0"): 2, ("s_0",): -2,
-            ("z_1",): -3, ("z_1", "s_1"): 2, ("s_1",): -2}
+            ("z_1",): -3, ("z_1", "s_1"): 2, ("s_1",): -2
+            }
 
         second_layer = {("z_0",): -1, ("z_1",): -1, ("s_2",): 2, ("z_0", "s_2"): -1, ("z_1", "s_2"): -1, ("z_0", "z_1"): 1}
         expected = c.merge_dicts_and_add(first_layer, second_layer)
@@ -180,7 +181,7 @@ class CheckCircuits(unittest.TestCase):
         x_vals = [0, 0, 0, 0]
         y = 0
 
-        polynomial = c.make_polynomial_for_datapoint(y, x_vals)
+        polynomial, _ = c.make_polynomial_for_datapoint(y, x_vals)
 
         first_layer = {
             ("z_0",): 1, ("z_0", "s_0"): 2,
@@ -206,7 +207,7 @@ class CheckCircuits(unittest.TestCase):
         x_vals = [1, 1, 1, 1]
         y = 1
 
-        polynomial = c.make_polynomial_for_datapoint(y, x_vals)
+        polynomial, _ = c.make_polynomial_for_datapoint(y, x_vals)
 
         first_layer = {
             ("z_0",): -3, ("z_0", "s_0"): 2, ("s_0",): -2,
@@ -234,7 +235,7 @@ class CheckCircuits(unittest.TestCase):
         x_vals = [1, 1, 1, 1, 1]
         y = 1
 
-        polynomial = c.make_polynomial_for_datapoint(y, x_vals)
+        polynomial, _ = c.make_polynomial_for_datapoint(y, x_vals)
 
 
         expected_keys = [
@@ -293,6 +294,52 @@ class CheckCircuits(unittest.TestCase):
 
         self.assertEqual(sort_tuple_list(polynomial.keys()), sort_tuple_list(expected_keys))
 
+
+    def test_make_polynomial_with_start(self):
+        x_vals = [1, 1, 1, 1]
+        y = 1
+
+        start = 1
+        expected_count = 6
+        expected_zs = ["z_1", "z_2", "z_3", "z_4", "z_5"]
+        
+        
+        polynomial, final_z_count = c.make_polynomial_for_datapoint(y, x_vals, start)
+
+        actual_zs = []
+        for key in polynomial.keys():
+            for k in key:
+                if k[0] == "z":
+                    actual_zs += [k]
+        
+        actual_zs = sorted(list(set(actual_zs)))
+        
+
+        self.assertEqual(actual_zs, expected_zs)
+        self.assertEqual(expected_count, final_z_count)
+        
+    def test_make_polynomials_for_many_datapoints(self):
+        
+        x_vals = [[0, 0, 0], [1, 1, 1]]
+        y_vals = [0, 1]
+
+        polynomial = c.make_polynomial_for_many_datapoints(y_vals, x_vals)
+
+        first_layer = {
+            ("z_0",): 1, ("z_0", "s_0"): 2,
+            ("z_1",): 1, ("z_1", "s_1"): 2,
+            ("z_2",): -3, ("z_2", "s_0"): 2, ("s_0",): -2,
+            ("z_3",): -3, ("z_3", "s_1"): 2, ("s_1",): -2
+            }
+
+        second_layer = {
+            ("z_0",): 1, ("z_1",): 1, ("z_0", "s_2"): -1, ("z_1", "s_2"): -1, ("z_0", "z_1"): 1,
+            ("z_2",): -1, ("z_3",): -1, ("s_2",): 2, ("z_2", "s_2"): -1, ("z_3", "s_2"): -1, ("z_2", "z_3"): 1
+        }
+        expected = c.merge_dicts_and_add(first_layer, second_layer)
+
+        self.assertEqual(polynomial, expected)
+        
 
 if __name__ == "__main__":
     unittest.main()

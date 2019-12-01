@@ -132,6 +132,14 @@ def wrap_with_complete_data(specific_circuit, n):
 
     return output
 
+def check_circuits_equivalent(weights_1, weights_2, n):
+    x_data = list(itertools.product([False, True], repeat=n + 1))
+    
+    circuit_1 = make_specific_circuit(weights_1)
+    circuit_2 = make_specific_circuit(weights_2)
+    
+    return all(circuit_1(x_row) == circuit_2(x_row) for x_row in x_data)
+        
 
 def make_base_polynomial(y, z_1, z_2, s):
     """
@@ -183,16 +191,16 @@ def merge_dicts_and_add(*args):
         output = _merge_dicts_and_add(output, d)
     return output
 
-def make_polynomial_for_datapoint(y_val, x_vals):
+def make_polynomial_for_datapoint(y_val, x_vals, z_start=0):
     if len(x_vals) < 3:
         raise ValueError("Please input a non-trivial amount of x values")
 
     polynomial = {}
 
     # First layer
-    layer = ["z_{}".format(i) for i in range(len(x_vals)-1)]
+    layer = ["z_{}".format(i + z_start) for i in range(len(x_vals)-1)]
     s_vals = ["s_{}".format(i) for i in range(len(x_vals)-1)]
-    auxiliary_bit_tally = len(layer)
+    auxiliary_bit_tally = len(layer) + z_start
     s_bit_tally = len(s_vals)
     for x_i, x_j, z_i, s in zip(x_vals[0:-1], x_vals[1:], layer, s_vals):
         polynomial = merge_dicts_and_add(polynomial, make_input_polynomial(z_i, x_i, x_j, s))
@@ -214,7 +222,66 @@ def make_polynomial_for_datapoint(y_val, x_vals):
     z_2 = layer[1]
     s = "s_{}".format(s_bit_tally)
     polynomial = merge_dicts_and_add(polynomial, make_output_polynomial(y_val, z_1, z_2, s))
-    return polynomial
+    return polynomial, auxiliary_bit_tally
+
+
+def make_polynomial_for_many_datapoints(y_vals, x_vals):
+    """ Same as above but x_vals and y_vals are lists """
+    if len(y_vals) != len(x_vals):
+        raise ValueError("x and y data don't match")
+    if len(set(len(x) for x in x_vals)) != 1:
+        raise ValueError("x data is not all same length")
+    if len(x_vals[0]) < 3:
+        raise ValueError("please enter some x values with nontrivial number of features")
+    
+    polys = []
+    z_start = 0
+    for y, x_row in zip(y_vals, x_vals):
+        poly, z_start = make_polynomial_for_datapoint(y, x_row, z_start)
+        polys += [poly]
+        
+    return merge_dicts_and_add(*polys)
+        
+def get_interaction_variables(n_layers, batch_size):
+    ## TODO: finish this and establish if its even worthwhile.
+    n_s = ( n_layers * (n_layers + 1) ) / 2
+    n_z_per_batch = n_s - 1
+    s_vals = [ "s_{}".format(i) for i in range(n_s)]
+    
+    # First layer
+    layer = ["z_{}".format(i) for i in range(n_layers)]
+    s_vals = ["s_{}".format(i) for i in range(n_layers)]
+    
+    auxiliary_bit_tally = n_layers
+    s_bit_tally = n_layers
+    interactions = set()
+    for z_i, s in zip(layer, s_vals):
+        interactions.add((z_i, s))
+
+    # Middle layers
+    while len(layer) > 2:
+        next_layer = ["z_{}".format(i + auxiliary_bit_tally) for i in range(len(layer)-1)]
+        s_vals = ["s_{}".format(i + s_bit_tally) for i in range(len(layer)-1)]
+        for y, x_i, x_j, s in zip(next_layer, layer[0:-1], layer[1:], s_vals):
+            interactions.add(x_i, s)
+            interactions.add(x_j, s)
+            interactions.add(x_i, x_j)
+            interactions.add(y, s)
+            interactions.add(y, x_i)
+            interactions.add(y, x_j)
+
+        layer = next_layer
+        auxiliary_bit_tally += len(next_layer)
+        s_bit_tally += len(s_vals)
+
+
+    # End layer
+    z_1 = layer[0]
+    z_2 = layer[1]
+    s = "s_{}".format(s_bit_tally)
+    polynomial = merge_dicts_and_add(polynomial, make_output_polynomial(y_val, z_1, z_2, s))
+    return polynomial, auxiliary_bit_tally
+        
 
 
 def make_bqm(polynomial, offset):
