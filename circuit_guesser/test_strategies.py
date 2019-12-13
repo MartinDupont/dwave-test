@@ -1,24 +1,42 @@
 import unittest
+from unittest.mock import MagicMock
+
 import strategies as strat
 import neal
-
+import samplers
+import circuits as c
 
 datasource_1 = [
-    { "x_data": [0, 1], "y_data": 1, "solution": { 's_0': 0 } },
-    { "x_data": [0, 1], "y_data": 0, "solution": { 's_0': 1 } },
-    { "x_data": [1, 1], "y_data": 1, "solution": { 's_0': 1 } },
-    { "x_data": [1, 1, 0], "y_data": 1, "solution": { 's_0': 0, 's_1': 0, 's_2': 1, 'z_0': 'irrelevant' } },
-    { "x_data": [1, 1, 0], "y_data": 1, "solution": { 's_0': 0, 's_1': 1, 's_2': 0, 'z_0': 'irrelevant' } },
+    {"x_data": [0, 1], "y_data": 1, "solution": {'s_0': 0}},
+    {"x_data": [0, 1], "y_data": 0, "solution": {'s_0': 1}},
+    {"x_data": [1, 1], "y_data": 1, "solution": {'s_0': 1}},
+    {"x_data": [1, 1, 0], "y_data": 1, "solution": {'s_0': 0, 's_1': 0, 's_2': 1, 'z_0': 'irrelevant'}},
+    {"x_data": [1, 1, 0], "y_data": 1, "solution": {'s_0': 0, 's_1': 1, 's_2': 0, 'z_0': 'irrelevant'}},
 ]
 
 datasource_2 = [
-    { "x_data": [0, 1], "y_data": 1, "solution": { 's_0': 1 } },
-    { "x_data": [0, 1], "y_data": 0, "solution": { 's_0': 0 } },
-    { "x_data": [1, 1, 0], "y_data": 0, "solution": { 's_0': 0, 's_1': 1, 's_2': 0, 'z_0': 'irrelevant' } },
-    { "x_data": [1, 0, 1], "y_data": 1, "solution": { 's_0': 1, 's_1': 1, 's_2': 1, 'z_0': 'irrelevant' } }
+    {"x_data": [0, 1], "y_data": 1, "solution": {'s_0': 1}},
+    {"x_data": [0, 1], "y_data": 0, "solution": {'s_0': 0}},
+    {"x_data": [1, 1, 0], "y_data": 0, "solution": {'s_0': 0, 's_1': 1, 's_2': 0, 'z_0': 'irrelevant'}},
+    {"x_data": [1, 0, 1], "y_data": 1, "solution": {'s_0': 1, 's_1': 1, 's_2': 1, 'z_0': 'irrelevant'}}
 ]
 
-class CheckCircuits(unittest.TestCase):
+class MockClass(dict):
+    __getattr__, __setattr__ = dict.get, dict.__setitem__
+
+def make_result(return_vals):
+    new_return_vals = []
+    for v in return_vals:
+        val = MockClass()
+        val.sample = v
+        new_return_vals += [val]
+
+    result = MockClass()
+    result.data = lambda x: new_return_vals
+    return result
+
+
+class CheckStrategies(unittest.TestCase):
 
     def test_check_solution(self):
         """ Should be able to correctly identify a solution """
@@ -47,3 +65,84 @@ class CheckCircuits(unittest.TestCase):
             result = strategy.check_solution(x_data, y_data, solution)
 
             self.assertFalse(result)
+
+    def test_solve_batch(self):
+        """ should select solutions from the sampler which are actually correct. """
+
+        #  Given
+        solutions = [make_result([{'s_0': 1}, {'s_0': 0}])]  # one real one, one fake one
+        x_rows = [[1, 0], [1, 1]]
+        y_rows = [0, 1]
+
+        expected = { (('s_0', 1),) }
+
+        sampler = samplers.MockSampler(solutions)
+        strategy = strat.SmarterStrategy(1, [], sampler, 1)
+
+        # When
+        result = strategy.solve_batch(x_rows, y_rows)
+
+        # Then
+        self.assertEqual(result, expected)
+
+    def test_solve(self):
+        """ solve method should take the intersection over all results for the individual subproblems. """
+
+        # Given
+        all_ones = (('s_0', 1), ('s_1', 1), ('s_2', 1),)
+        results = [
+            {
+                all_ones,
+                (('s_0', 0), ('s_1', 0), ('s_2', 0),),
+            },
+            {
+                all_ones,
+                (('s_0', 1), ('s_1', 0), ('s_2', 0),),
+            },
+            {
+                all_ones,
+                (('s_0', 0), ('s_1', 0), ('s_2', 1),),
+            },
+            {
+                all_ones,
+                (('s_0', 0), ('s_1', 1), ('s_2', 0),),
+            },
+        ]
+
+        sampler = samplers.MockSampler([])
+        strategy = strat.SmarterStrategy(2, [1, 0, 1], sampler, 4)
+        mock_solve_batch = MagicMock()
+        mock_solve_batch.side_effect = results
+        strategy.solve_batch = mock_solve_batch
+
+        expected = [strategy.convert_tuples_to_dict(all_ones)]
+
+        # When
+        result = strategy.solve()
+
+        # Then
+        self.assertEqual(result, expected)
+
+    def test_solve_2(self):
+        """ it should call solve_batch with all x and y combinations"""
+
+        # Given
+        weights = [1, 0, 1]
+        n_layers = 2
+        sampler = samplers.MockSampler([])
+        strategy = strat.SmarterStrategy(n_layers, weights, sampler, 4)
+        mock_solve_batch = MagicMock(return_value=(('s_0', 1), ('s_1', 1), ('s_2', 1),))
+        strategy.solve_batch = mock_solve_batch
+
+        actual_circuit = c.make_specific_circuit(weights)
+        x_data, y_data = c.make_complete_data(actual_circuit, n_layers)
+
+        # When
+        strategy.solve()
+        calls = mock_solve_batch.call_args_list
+        for x_row, y_row in zip(x_data, y_data):
+            self.assertTrue(x_row in calls)
+            self.assertTrue(y_row in calls)
+
+
+

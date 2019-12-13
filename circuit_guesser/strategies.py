@@ -8,6 +8,7 @@ import dwave_networkx as dnx
 from dwave.system import FixedEmbeddingComposite, DWaveSampler
 import neal
 import math
+from samplers import MockSampler
 
 def get_max_batch_size(n_batches, n_xs):
     num_rows = 2 ** n_xs
@@ -42,17 +43,17 @@ class EliminationStrategy:
         self.circuit_weights = circuit_weights
         self.n_layers = n_layers
 
-        if isinstance(sampler, neal.SimulatedAnnealingSampler):
+        if isinstance(sampler, neal.SimulatedAnnealingSampler) or isinstance(sampler, MockSampler):
             self.sampler = sampler
         else:
             embedding = self.make_embedding()
             self.sampler = FixedEmbeddingComposite(DWaveSampler(), embedding)
-            
+
     def get_most_complex_polynomial(self):
         x_data = [1 for i in range(self.n_layers + 1)]
         bqm, _ = c.make_polynomial_for_datapoint(1, x_data) # the polynomial with all 1s contains all the edges
         return bqm
-        
+
     def make_embedding(self):
         bqm = self.get_most_complex_polynomial()
         print(bqm)
@@ -113,26 +114,39 @@ class EliminationStrategy:
 
         return [ self.convert_tuples_to_dict(sol) for sol in final_solutions]
         # Question: do we reject all high-energy solutions?
-        
+
 class SmarterStrategy(EliminationStrategy):
     def __init__(self, n_layers, circuit_weights, sampler, n_batches):
         super().__init__(n_layers, circuit_weights, sampler)
-        self.n_batches = n_batches 
-        
+        self.n_batches = n_batches
+
     def get_most_complex_polynomial(self):
         x_row = [1 for i in range(self.n_layers + 1)]
         n_rows = get_max_batch_size(self.n_batches, self.n_layers + 1)
-        x_rows = [x_row for i in range(n_rows)]  ## this is a hack. x_rows with all 1s will never occur. 
+        x_rows = [x_row for i in range(n_rows)]  ## this is a hack. x_rows with all 1s will never occur.
         y_rows = [1 for i in range(n_rows)]
-        bqm = c.make_polynomial_for_many_datapoints(y_rows, x_rows) # the polynomial with all 1s contains all the edges  
+        bqm = c.make_polynomial_for_many_datapoints(y_rows, x_rows) # the polynomial with all 1s contains all the edges
         return bqm
-        
+
     def check_multiple_solutions(self, x_rows, y_rows, sample):
         for x_row, y in zip(x_rows, y_rows):
             if not self.check_solution(x_row, y, sample):
                 return False
         return True
-        
+
+    def solve_batch(self, x_rows, y_rows):
+        offset = 0
+        poly = c.make_polynomial_for_many_datapoints(y_rows, x_rows)
+        bqm = c.make_bqm(poly, offset)
+        result = self.sampler.sample(bqm, num_reads=100)
+        solution_set = set()
+        for datum in result.data(['sample', 'energy', 'num_occurrences']):
+            solution = self.convert_dict_to_tuples(datum.sample)
+
+            if self.check_multiple_solutions(x_rows, y_rows, datum.sample):
+                solution_set.add(solution)
+        return solution_set
+
     def solve(self):
         """This guy will be smarter and process the polynomials in batches,
          then take the intersection over all in order to find a solution.
@@ -143,28 +157,19 @@ class SmarterStrategy(EliminationStrategy):
         # generate data.
         x_data, y_data = c.make_complete_data(actual_circuit, self.n_layers)
 
-        offset = 0
-        # for each row, solve the problem.
-        individual_solutions = []
+        # for each batch, solve the problem.
+        first = True
         for i in range(self.n_batches):
             x_rows = x_data[i::self.n_batches]
             y_rows = y_data[i::self.n_batches]
-        
-            poly = c.make_polynomial_for_many_datapoints(y_rows, x_rows)
-            bqm = c.make_bqm(poly, offset)
-            result = sampler.sample(bqm, num_reads=100)
-            solution_set = set()
-            for datum in result.data(['sample', 'energy', 'num_occurrences']):
-                solution = self.convert_dict_to_tuples(datum.sample)
 
-                if self.check_multiple_solutions(x_rows, y_rows, datum.sample):
-                    solution_set.add(solution)
+            solution_set = self.solve_batch(x_rows, y_rows)
 
-            individual_solutions += [solution_set]
-
-        final_solutions = individual_solutions[0]
-        for sol in individual_solutions:
-            final_solutions = final_solutions.intersection(sol)
+            if first:
+                final_solutions = solution_set
+                first = False
+            else:
+                final_solutions = final_solutions.intersection(solution_set)
 
         return [ self.convert_tuples_to_dict(sol) for sol in final_solutions]
 
@@ -186,6 +191,6 @@ if __name__ == "__main__":
         print("===========================================")
         sorted_keys = sorted(r.keys())
         new_weights = [r[k] for k in sorted_keys]
-        
+
         print("Correct: {}".format(c.check_circuits_equivalent(weights, new_weights, n_layers)))
         print(r)
