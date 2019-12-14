@@ -39,9 +39,11 @@ class CspStrategy:
 
 
 class EliminationStrategy:
-    def __init__(self, n_layers, circuit_weights, sampler):
-        self.circuit_weights = circuit_weights
+    def __init__(self, n_layers, n_embedding_tries, n_samples, circuit_weights, sampler):
         self.n_layers = n_layers
+        self.n_embedding_tries = n_embedding_tries
+        self.n_samples = n_samples
+        self.circuit_weights = circuit_weights
 
         if isinstance(sampler, neal.SimulatedAnnealingSampler) or isinstance(sampler, MockSampler):
             self.sampler = sampler
@@ -58,16 +60,25 @@ class EliminationStrategy:
         bqm = self.get_most_complex_polynomial()
         print(bqm)
         edges = [tup for tup in bqm.keys() if len(tup) == 2]
+        if len(edges) == 0:
+            return {'s_0': [1000]} # no edges, trivial problem, put the single qubit anywhere.
         chimera = dnx.chimera_graph(16)
 
         best_chain_length = 10000000
-        for i in range(100):
+        best_embedding = {}
+        for i in range(self.n_embedding_tries):
             embedding = minorminer.find_embedding(edges, chimera)
+            if len(embedding.keys()) == 0:
+                continue # minorminer returns an empty dict when it cant find an embedding
             max_chain_length = max(len(value) for value in embedding.values())
             if max_chain_length < best_chain_length:
                 best_chain_length = max_chain_length
                 print(best_chain_length)
                 best_embedding = embedding
+
+        if len(best_embedding.keys()) == 0:
+            keys = set(k for tup in bqm.keys() for k in tup)
+            raise RuntimeError("No embedding found for problem with {} variables".format(len(keys)))
         return best_embedding
 
     def check_solution(self, x_data, y_data, solution):
@@ -98,7 +109,7 @@ class EliminationStrategy:
         for x_vec, y in zip(x_data, y_data):
             poly, _ = c.make_polynomial_for_datapoint(y, x_vec)
             bqm = c.make_bqm(poly, offset)
-            result = sampler.sample(bqm, num_reads=100)
+            result = sampler.sample(bqm, num_reads=self.n_samples)
             solution_set = set()
             for datum in result.data(['sample', 'energy', 'num_occurrences']):
                 solution = self.convert_dict_to_tuples(datum.sample)
@@ -116,8 +127,8 @@ class EliminationStrategy:
         # Question: do we reject all high-energy solutions?
 
 class SmarterStrategy(EliminationStrategy):
-    def __init__(self, n_layers, circuit_weights, sampler, n_batches):
-        super().__init__(n_layers, circuit_weights, sampler)
+    def __init__(self, n_layers, n_embedding_tries, n_samples, circuit_weights, sampler, n_batches):
+        super().__init__(n_layers, n_embedding_tries, n_samples, circuit_weights, sampler)
         self.n_batches = n_batches
 
     def get_most_complex_polynomial(self):
@@ -138,7 +149,7 @@ class SmarterStrategy(EliminationStrategy):
         offset = 0
         poly = c.make_polynomial_for_many_datapoints(y_rows, x_rows)
         bqm = c.make_bqm(poly, offset)
-        result = self.sampler.sample(bqm, num_reads=100)
+        result = self.sampler.sample(bqm, num_reads=self.n_samples)
         solution_set = set()
         for datum in result.data(['sample', 'energy', 'num_occurrences']):
             solution = self.convert_dict_to_tuples(datum.sample)
@@ -174,15 +185,13 @@ class SmarterStrategy(EliminationStrategy):
         return [ self.convert_tuples_to_dict(sol) for sol in final_solutions]
 
 
-
-# TODO: check that I"m scaling my polynomials correctly!!!!!!!!!!!!!!!!!!!!
 # TODO: make get_embedding more efficient
 if __name__ == "__main__":
     n_layers = 4
     weights = [0, 0, 0, 0, 1, 1, 1, 0, 0, 1]
     #weights = [1, 1, 1, 0, 0, 1]
     sampler = neal.SimulatedAnnealingSampler()
-    strategy = SmarterStrategy(n_layers, weights, sampler, 4)
+    strategy = SmarterStrategy(n_layers, 100, 100, weights, sampler, 4)
     embedding = strategy.make_embedding()
     print("-----------------------------------------------------------------")
     print(embedding)
