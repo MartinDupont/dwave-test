@@ -9,6 +9,7 @@ from dwave.system import FixedEmbeddingComposite, DWaveSampler
 import neal
 import math
 from samplers import MockSampler
+import time
 
 def get_max_batch_size(n_batches, n_xs):
     num_rows = 2 ** n_xs
@@ -47,9 +48,13 @@ class EliminationStrategy:
 
         if isinstance(sampler, neal.SimulatedAnnealingSampler) or isinstance(sampler, MockSampler):
             self.sampler = sampler
+            self.embedding_time = 0
         else:
+            start = time.time()
             embedding = self.make_embedding()
+            end = time.time()
             self.sampler = FixedEmbeddingComposite(DWaveSampler(), embedding)
+            self.embedding_time = end - start
 
     def get_most_complex_polynomial(self):
         x_data = [1 for i in range(self.n_layers + 1)]
@@ -184,6 +189,28 @@ class SmarterStrategy(EliminationStrategy):
 
         return [ self.convert_tuples_to_dict(sol) for sol in final_solutions]
 
+
+
+
+class BruteForceStrategy:
+    def __init__(self, n_layers, circuit_weights):
+        self.circuit_weights = circuit_weights
+        self.n_layers = n_layers
+
+
+    def solve(self, **kwargs):
+
+
+        actual_circuit = c.make_specific_circuit(self.circuit_weights)
+
+        constraint_satisfaction_problem = c.wrap_with_complete_data(actual_circuit, self.n_layers)
+        n_s, _ = c.get_ns_nx(self.n_layers)
+
+        for s_vals in itertools.product([False, True], repeat=n_s):
+            if constraint_satisfaction_problem(s_vals):
+                return s_vals
+
+        raise RuntimeError("Brute force strategy ran to completion without finding a solution.")
 
 # TODO: make get_embedding more efficient
 if __name__ == "__main__":

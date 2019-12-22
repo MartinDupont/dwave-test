@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import circuits as c
 
 # ============================================================== #
-max_layers = 6
-n_embedding_tries = 1
+max_layers = 7
+n_embedding_tries = 20
 
 # ============================================================== #
 
@@ -37,7 +37,7 @@ for n_layers in range(1, max_layers):
             print("n_layers : {}, batch_size: {}".format(n_layers, 2 ** batch))
             embedding = strategy.make_embedding()
             worst_chain_length = max(len(value) for value in embedding.values())
-        except Exception as e:
+        except Exception as e: # errors are not exceptions!?!?!?!??!?
             print(e)
             worst_chain_length = np.inf
         finally:
