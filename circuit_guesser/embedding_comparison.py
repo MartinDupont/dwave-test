@@ -57,8 +57,8 @@ plt.ylabel('number of layers')
 plt.yticks(range(max_layers - 1), range(1, max_layers + 1))
 plt.xlabel('batch size')
 plt.xticks(range(max_layers + 1), [ 2 ** i for i in range(max_layers + 1)])
-plt.show()
 plt.savefig(dirname + '/embeddings.png')
+plt.show()
 plt.close()
 
 
@@ -69,7 +69,7 @@ plt.ylabel('number of layers')
 plt.yticks(range(max_layers - 1), range(1, max_layers + 1))
 plt.xlabel('batch size')
 plt.xticks(range(max_layers + 1), [ 2 ** i for i in range(max_layers + 1)])
-plt.show()
 plt.savefig(dirname + '/num_variables.png')
+plt.show()
 plt.close()
 
