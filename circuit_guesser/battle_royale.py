@@ -17,8 +17,6 @@ def generate_random_weights(n_s):
     return out
 
 # TODO: should I also do a search through different chain strengths?
-# TODO: CHeck that all tests still run after changing *args to args
-# TODO: add test for make_polynomial_for_datapoint
 # TODO: maybe play around with the number of tries I take when running my samplers? (should yield better overlap)
 # ============================================================== #
 max_layers = 5
@@ -65,7 +63,7 @@ for n_layers in range(1, max_layers):
             print("batch size: {}".format(batch_size))
             try:
                 start = time.time()
-                solutions = strategy.solve(chain_strength=2)
+                solutions = strategy.solve(chain_strength=2.0)
                 end = time.time()
                 embedding_time = strategy.embedding_time
                 failure = len(solutions) == 0

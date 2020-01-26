@@ -144,6 +144,16 @@ class CheckCircuits(unittest.TestCase):
 
         self.assertEqual(expected, result)
 
+    def test_make_polynomial_for_datapoint_trivial(self):
+        x_vals = [0, 0]
+        y = 0
+
+        polynomial, _ = c.make_polynomial_for_datapoint(y, x_vals)
+
+        expected = {('s_0',) : 0}
+
+        self.assertEqual(polynomial, expected)
+
     def test_make_polynomial_for_datapoint(self):
         x_vals = [0, 0, 0]
         y = 0
@@ -302,8 +312,8 @@ class CheckCircuits(unittest.TestCase):
         start = 1
         expected_count = 6
         expected_zs = ["z_1", "z_2", "z_3", "z_4", "z_5"]
-        
-        
+
+
         polynomial, final_z_count = c.make_polynomial_for_datapoint(y, x_vals, start)
 
         actual_zs = []
@@ -311,15 +321,15 @@ class CheckCircuits(unittest.TestCase):
             for k in key:
                 if k[0] == "z":
                     actual_zs += [k]
-        
+
         actual_zs = sorted(list(set(actual_zs)))
-        
+
 
         self.assertEqual(actual_zs, expected_zs)
         self.assertEqual(expected_count, final_z_count)
-        
+
     def test_make_polynomials_for_many_datapoints(self):
-        
+
         x_vals = [[0, 0, 0], [1, 1, 1]]
         y_vals = [0, 1]
 
@@ -339,7 +349,7 @@ class CheckCircuits(unittest.TestCase):
         expected = c.merge_dicts_and_add(first_layer, second_layer)
 
         self.assertEqual(polynomial, expected)
-        
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -33,6 +33,7 @@ def make_result(return_vals):
 
     result = MockClass()
     result.data = lambda x: new_return_vals
+    result.info = {}
     return result
 
 
