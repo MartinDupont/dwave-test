@@ -84,8 +84,8 @@ for size in batch_sizes:
     average_times = []
     for l in layers:
         matching = [r for r in dwave_records if r.layers == l and r.batch_size == size]
-        times = [r.timing.get('qpu_access_time', np.NaN) for r in matching]
-        avg_time = np.mean(times)
+        times = [r.timing.get('qpu_access_time', False) for r in matching]
+        avg_time = np.mean([t for t in times if t])
         average_times += [avg_time]
     plt.plot(layers, average_times, label='Batch size: {}'.format(size))
 
@@ -104,7 +104,6 @@ plt.xlabel('number of layers in problem')
 plt.ylabel('average running time')
 plt.legend()
 plt.show()
-
 
 # ========================================= plot total running times with embedding time =========================================== #
 

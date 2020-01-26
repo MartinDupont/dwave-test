@@ -61,7 +61,6 @@ class EliminationStrategy:
 
     def make_embedding(self):
         bqm = self.get_most_complex_polynomial()
-        print(bqm)
         edges = [tup for tup in bqm.keys() if len(tup) == 2]
         if len(edges) == 0:
             return {'s_0': [1000]} # no edges, trivial problem, put the single qubit anywhere.
@@ -76,7 +75,6 @@ class EliminationStrategy:
             max_chain_length = max(len(value) for value in embedding.values())
             if max_chain_length < best_chain_length:
                 best_chain_length = max_chain_length
-                print(best_chain_length)
                 best_embedding = embedding
 
         if len(best_embedding.keys()) == 0:
@@ -126,9 +124,9 @@ class EliminationStrategy:
 
 class SmarterStrategy(EliminationStrategy):
     def __init__(self, n_layers, n_embedding_tries, sampler, n_batches):
-        super().__init__(n_layers, n_embedding_tries, sampler)
         self.n_batches = n_batches
         self.timing = {}
+        super().__init__(n_layers, n_embedding_tries, sampler)
 
     def get_most_complex_polynomial(self):
         x_row = [1 for i in range(self.n_layers + 1)]
