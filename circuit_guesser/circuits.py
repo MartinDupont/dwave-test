@@ -124,7 +124,7 @@ def make_complete_data(specific_circuit, n):
 def wrap_with_complete_data(specific_circuit, n):
     x_data, y_data = make_complete_data(specific_circuit, n)
 
-    def output(*args):
+    def output(args):
         for (x_row, y) in zip(x_data, y_data):
             if recursive_circuit(args, x_row) != y:
                 return False
@@ -193,7 +193,7 @@ def merge_dicts_and_add(*args):
 
 def make_polynomial_for_datapoint(y_val, x_vals, z_start=0):
     if len(x_vals) == 2:
-        return {  ('s_0',): 2 * y_val, ('s_0',): -1 * x_vals[0], ('s_0',): -1 * x_vals[1] }, 0
+        return {  ('s_0',): ( 2 * y_val - 1 * x_vals[0] - 1 * x_vals[1]) }, 0
     if len(x_vals) < 2:
         raise ValueError("Please input a non-trivial amount of x values")
 

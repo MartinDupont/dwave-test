@@ -3,32 +3,27 @@ import samplers
 import numpy as np
 import pickle
 import os
-import matplotlib.pyplot as plt
 import circuits as c
 from dwave.system.samplers import DWaveSampler
 import neal
 import time
-
-
-class Record:
-    def __init__(self, strategy, layers, actual_weights, solutions, running_time, embedding_time=0, sampling_time=0, failure=False):
-        self.strategy = strategy
-        self.layers = layers
-        self.actual_weights = actual_weights
-        self.solutions = solutions
-        self.running_time = running_time
-        self.embedding_time = embedding_time
-        self.sampling_time = sampling_time
-        self.failure = failure
+import random
+from record import Record
 
 def generate_random_weights(n_s):
-    # TODO: implement
-    return []
+    out = []
+    for i in range(n_s):
+        out += [random.choice([True, False])]
+    return out
 
+# TODO: should I also do a search through different chain strengths?
+# TODO: CHeck that all tests still run after changing *args to args
+# TODO: add test for make_polynomial_for_datapoint
+# TODO: maybe play around with the number of tries I take when running my samplers? (should yield better overlap)
 # ============================================================== #
-max_layers = 6
+max_layers = 5
 n_embedding_tries = 1
-n_problems_per_size = 4
+n_problems_per_size = 10
 use_real_dwave = False
 
 # ============================================================== #
@@ -63,44 +58,25 @@ for n_layers in range(1, max_layers):
         records += [brute_force_record]
 
         print("Beginning with dwave solvers .....")
-        for batch in range(0, n_layers + 2): # with batch, I want to take actual batch sizes of size 2 ** batch. there is N_layers +1 x vars which means range(n_layers + 2 hits that)
+        for batch in range(1, n_layers + 2): # with batch, I want to take actual batch sizes of size 2 ** batch. there is N_layers +1 x vars which means range(n_layers + 2 hits that)
             n_batches = 2 ** (n_layers + 1 - batch)
+            batch_size = 2 ** batch
             strategy = strat.SmarterStrategy(n_layers, n_embedding_tries, 100, weights, sampler, n_batches)
+            print("batch size: {}".format(batch_size))
             try:
-                print("batch_size: {}".format(n_layers, 2 ** batch))
                 start = time.time()
-                solutions = strategy.solve()
+                solutions = strategy.solve(chain_strength=2)
                 end = time.time()
-                record = Record(record_type, n_layers, weights, solutions, end-start, "???", )
+                embedding_time = strategy.embedding_time
+                failure = len(solutions) == 0
+                timing = strategy.timing
+                record = Record(record_type, n_layers, weights, solutions, end-start, batch_size, embedding_time, timing, failure)
             except Exception as e:
                 print(e)
-                record = Record(record_type, n_layers, weights, [], 0, 0, 0, True)
+                record = Record(record_type, n_layers, weights, [], 0, 0, {}, True)
             finally:
                 records += [record]
 
             pickle.dump(records, open(records_file, "wb"))
 
-
-plt.imshow(output)
-plt.colorbar()
-plt.title('worst chain length for embedding')
-plt.ylabel('number of layers')
-plt.yticks(range(max_layers - 1), range(1, max_layers + 1))
-plt.xlabel('batch size')
-plt.xticks(range(max_layers + 1), [ 2 ** i for i in range(max_layers + 1)])
-plt.show()
-plt.savefig(dirname + '/embeddings.png')
-plt.close()
-
-
-plt.imshow(n_vars_array)
-plt.colorbar()
-plt.title('number of total variables')
-plt.ylabel('number of layers')
-plt.yticks(range(max_layers - 1), range(1, max_layers + 1))
-plt.xlabel('batch size')
-plt.xticks(range(max_layers + 1), [ 2 ** i for i in range(max_layers + 1)])
-plt.show()
-plt.savefig(dirname + '/num_variables.png')
-plt.close()
 

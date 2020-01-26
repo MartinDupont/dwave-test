@@ -21,6 +21,8 @@ neighbors = [('AB', 'BC'), ('AB', 'NT'), ('AB', 'SK'), ('BC', 'NT'), ('BC', 'YT'
              ('MB', 'ON'), ('MB', 'SK'), ('NB', 'NS'), ('NB', 'QC'), ('NL', 'QC'), ('NT', 'NU'),
              ('NT', 'SK'), ('NT', 'YT'), ('ON', 'QC')]
 
+dirname = os.path.dirname(__file__)
+results_path = dirname + "/results"
 # Function for the constraint that two nodes with a shared edge not both select one color
 def not_both_1(v, u):
     return not (v and u)
@@ -39,10 +41,9 @@ def plot_map(sample):
     # Plot the sample with color-coded nodes
     node_colors = [color_map.get(node) for node in G.nodes()]
     nx.draw_circular(G, with_labels=True, node_color=node_colors, node_size=3000, cmap=plt.cm.rainbow)
+    plt.savefig(results_path + '/picture.png')
     plt.show()
 
-dirname = os.path.dirname(__file__)
-results_path = dirname + "/results"
 
 def find_new_lowest_version():
     files = os.listdir(results_path)

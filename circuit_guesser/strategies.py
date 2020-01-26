@@ -135,6 +135,7 @@ class SmarterStrategy(EliminationStrategy):
     def __init__(self, n_layers, n_embedding_tries, n_samples, circuit_weights, sampler, n_batches):
         super().__init__(n_layers, n_embedding_tries, n_samples, circuit_weights, sampler)
         self.n_batches = n_batches
+        self.timing = {}
 
     def get_most_complex_polynomial(self):
         x_row = [1 for i in range(self.n_layers + 1)]
@@ -150,11 +151,12 @@ class SmarterStrategy(EliminationStrategy):
                 return False
         return True
 
-    def solve_batch(self, x_rows, y_rows):
+    def solve_batch(self, x_rows, y_rows, **kwargs):
         offset = 0
         poly = c.make_polynomial_for_many_datapoints(y_rows, x_rows)
         bqm = c.make_bqm(poly, offset)
-        result = self.sampler.sample(bqm, num_reads=self.n_samples)
+        result = self.sampler.sample(bqm, num_reads=self.n_samples, **kwargs)
+        self.timing = c._merge_dicts_and_add(self.timing, result.info.get('timing', {}))
         solution_set = set()
         for datum in result.data(['sample', 'energy', 'num_occurrences']):
             solution = self.convert_dict_to_tuples(datum.sample)
@@ -163,7 +165,7 @@ class SmarterStrategy(EliminationStrategy):
                 solution_set.add(solution)
         return solution_set
 
-    def solve(self):
+    def solve(self, **kwargs):
         """This guy will be smarter and process the polynomials in batches,
          then take the intersection over all in order to find a solution.
          We let the thingy do the embedding for us"""
@@ -179,7 +181,7 @@ class SmarterStrategy(EliminationStrategy):
             x_rows = x_data[i::self.n_batches]
             y_rows = y_data[i::self.n_batches]
 
-            solution_set = self.solve_batch(x_rows, y_rows)
+            solution_set = self.solve_batch(x_rows, y_rows, **kwargs)
 
             if first:
                 final_solutions = solution_set
