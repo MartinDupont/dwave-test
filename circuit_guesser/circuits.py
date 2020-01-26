@@ -120,9 +120,7 @@ def make_complete_data(specific_circuit, n):
 
     return x_data, y_data
 
-
-def wrap_with_complete_data(specific_circuit, n):
-    x_data, y_data = make_complete_data(specific_circuit, n)
+def wrap_with_data(x_data, y_data):
 
     def output(args):
         for (x_row, y) in zip(x_data, y_data):
@@ -131,6 +129,12 @@ def wrap_with_complete_data(specific_circuit, n):
         return True
 
     return output
+
+
+def wrap_with_complete_data(specific_circuit, n):
+    x_data, y_data = make_complete_data(specific_circuit, n)
+
+    return wrap_with_data(x_data, y_data)
 
 def check_circuits_equivalent(weights_1, weights_2, n):
     x_data = list(itertools.product([False, True], repeat=n + 1))

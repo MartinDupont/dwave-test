@@ -40,11 +40,9 @@ class CspStrategy:
 
 
 class EliminationStrategy:
-    def __init__(self, n_layers, n_embedding_tries, n_samples, circuit_weights, sampler):
+    def __init__(self, n_layers, n_embedding_tries, sampler):
         self.n_layers = n_layers
         self.n_embedding_tries = n_embedding_tries
-        self.n_samples = n_samples
-        self.circuit_weights = circuit_weights
 
         if isinstance(sampler, neal.SimulatedAnnealingSampler) or isinstance(sampler, MockSampler):
             self.sampler = sampler
@@ -99,14 +97,9 @@ class EliminationStrategy:
     def convert_tuples_to_dict(self, tuples):
         return { key: value for key, value in tuples }
 
-    def solve(self, **kwargs):
+    def solve(self, x_data, y_data, **kwargs):
         """This guy will be sortof dumb and find a set of possible solutions for EACH datapoint,
          then take the intersection over all in order to find a solution. We let the thingy do the embedding for us"""
-
-        actual_circuit = c.make_specific_circuit(self.circuit_weights)
-
-        # generate data.
-        x_data, y_data = c.make_complete_data(actual_circuit, self.n_layers)
 
         offset = 0
         # for each row, solve the problem.
@@ -114,7 +107,7 @@ class EliminationStrategy:
         for x_vec, y in zip(x_data, y_data):
             poly, _ = c.make_polynomial_for_datapoint(y, x_vec)
             bqm = c.make_bqm(poly, offset)
-            result = sampler.sample(bqm, num_reads=self.n_samples)
+            result = sampler.sample(bqm, **kwargs)
             solution_set = set()
             for datum in result.data(['sample', 'energy', 'num_occurrences']):
                 solution = self.convert_dict_to_tuples(datum.sample)
@@ -132,8 +125,8 @@ class EliminationStrategy:
         # Question: do we reject all high-energy solutions?
 
 class SmarterStrategy(EliminationStrategy):
-    def __init__(self, n_layers, n_embedding_tries, n_samples, circuit_weights, sampler, n_batches):
-        super().__init__(n_layers, n_embedding_tries, n_samples, circuit_weights, sampler)
+    def __init__(self, n_layers, n_embedding_tries, sampler, n_batches):
+        super().__init__(n_layers, n_embedding_tries, sampler)
         self.n_batches = n_batches
         self.timing = {}
 
@@ -155,7 +148,7 @@ class SmarterStrategy(EliminationStrategy):
         offset = 0
         poly = c.make_polynomial_for_many_datapoints(y_rows, x_rows)
         bqm = c.make_bqm(poly, offset)
-        result = self.sampler.sample(bqm, num_reads=self.n_samples, **kwargs)
+        result = self.sampler.sample(bqm, **kwargs)
         self.timing = c._merge_dicts_and_add(self.timing, result.info.get('timing', {}))
         solution_set = set()
         for datum in result.data(['sample', 'energy', 'num_occurrences']):
@@ -165,15 +158,10 @@ class SmarterStrategy(EliminationStrategy):
                 solution_set.add(solution)
         return solution_set
 
-    def solve(self, **kwargs):
+    def solve(self, x_data, y_data, **kwargs):
         """This guy will be smarter and process the polynomials in batches,
          then take the intersection over all in order to find a solution.
          We let the thingy do the embedding for us"""
-
-        actual_circuit = c.make_specific_circuit(self.circuit_weights)
-
-        # generate data.
-        x_data, y_data = c.make_complete_data(actual_circuit, self.n_layers)
 
         # for each batch, solve the problem.
         first = True
@@ -195,17 +183,13 @@ class SmarterStrategy(EliminationStrategy):
 
 
 class BruteForceStrategy:
-    def __init__(self, n_layers, circuit_weights):
-        self.circuit_weights = circuit_weights
+    def __init__(self, n_layers):
         self.n_layers = n_layers
 
 
-    def solve(self, **kwargs):
+    def solve(self, x_data, y_data, **kwargs):
 
-
-        actual_circuit = c.make_specific_circuit(self.circuit_weights)
-
-        constraint_satisfaction_problem = c.wrap_with_complete_data(actual_circuit, self.n_layers)
+        constraint_satisfaction_problem = c.wrap_with_data(x_data, y_data)
         n_s, _ = c.get_ns_nx(self.n_layers)
 
         for s_vals in itertools.product([False, True], repeat=n_s):
@@ -214,17 +198,17 @@ class BruteForceStrategy:
 
         raise RuntimeError("Brute force strategy ran to completion without finding a solution.")
 
-# TODO: make get_embedding more efficient
 if __name__ == "__main__":
     n_layers = 4
     weights = [0, 0, 0, 0, 1, 1, 1, 0, 0, 1]
-    #weights = [1, 1, 1, 0, 0, 1]
     sampler = neal.SimulatedAnnealingSampler()
-    strategy = SmarterStrategy(n_layers, 100, 100, weights, sampler, 4)
+    strategy = SmarterStrategy(n_layers, 100, sampler, 4)
     embedding = strategy.make_embedding()
     print("-----------------------------------------------------------------")
     print(embedding)
-    results = strategy.solve()
+    circuit = c.make_specific_circuit(weights)
+    x_data, y_data = c.make_complete_data(circuit, n_layers)
+    results = strategy.solve(x_data, y_data, num_reads=1000)
     for r in results:
         print("===========================================")
         sorted_keys = sorted(r.keys())

@@ -46,7 +46,7 @@ for l in layers:
     avg_brute_force_times += [avg_time]
 plt.plot(layers, avg_brute_force_times, label='Brute force')
 
-
+plt.yscale("log")
 plt.xticks(layers)
 plt.title('Total running time vs problem size')
 plt.xlabel('number of layers in problem')
@@ -100,6 +100,34 @@ plt.plot(layers, avg_brute_force_times, label='Brute force')
 
 plt.xticks(layers)
 plt.title('Total QPU time vs problem size')
+plt.xlabel('number of layers in problem')
+plt.ylabel('average running time')
+plt.legend()
+plt.show()
+
+
+# ========================================= plot total running times with embedding time =========================================== #
+
+for size in batch_sizes:
+    average_times = []
+    for l in layers:
+        matching = [r for r in dwave_records if r.layers == l and r.batch_size == size]
+        times = [r.running_time + r.embedding_time for r in matching]
+        avg_time = np.mean(times)
+        average_times += [avg_time]
+    plt.plot(layers, average_times, label='Batch size: {}'.format(size))
+
+avg_brute_force_times = []
+for l in layers:
+    matching = [r for r in brute_force_records if r.layers == l]
+    times = [r.running_time for r in matching]
+    avg_time = np.mean(times)
+    avg_brute_force_times += [avg_time]
+plt.plot(layers, avg_brute_force_times, label='Brute force')
+
+plt.yscale("log")
+plt.xticks(layers)
+plt.title('Total running time including embedding vs problem size')
 plt.xlabel('number of layers in problem')
 plt.ylabel('average running time')
 plt.legend()

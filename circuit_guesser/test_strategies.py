@@ -42,7 +42,7 @@ class CheckStrategies(unittest.TestCase):
     def test_check_solution(self):
         """ Should be able to correctly identify a solution """
 
-        strategy = strat.EliminationStrategy(1, 100, 100, [], neal.SimulatedAnnealingSampler())
+        strategy = strat.EliminationStrategy(1, 100, neal.SimulatedAnnealingSampler())
 
         for test in datasource_1:
             x_data = test["x_data"]
@@ -56,7 +56,7 @@ class CheckStrategies(unittest.TestCase):
     def test_check_solution_negative(self):
         """ Should be able to correctly identify an incorrect solution """
 
-        strategy = strat.EliminationStrategy(1, 100, 100, [], neal.SimulatedAnnealingSampler())
+        strategy = strat.EliminationStrategy(1, 100, neal.SimulatedAnnealingSampler())
 
         for test in datasource_2:
             x_data = test["x_data"]
@@ -78,7 +78,7 @@ class CheckStrategies(unittest.TestCase):
         expected = { (('s_0', 1),) }
 
         sampler = samplers.MockSampler(solutions)
-        strategy = strat.SmarterStrategy(1, 100, 100, [], sampler, 1)
+        strategy = strat.SmarterStrategy(1, 100, sampler, 1)
 
         # When
         result = strategy.solve_batch(x_rows, y_rows)
@@ -111,7 +111,7 @@ class CheckStrategies(unittest.TestCase):
         ]
 
         sampler = samplers.MockSampler([])
-        strategy = strat.SmarterStrategy(2, 100, 100, [1, 0, 1], sampler, 4)
+        strategy = strat.SmarterStrategy(2, 100, sampler, 4)
         mock_solve_batch = MagicMock()
         mock_solve_batch.side_effect = results
         strategy.solve_batch = mock_solve_batch
@@ -119,7 +119,7 @@ class CheckStrategies(unittest.TestCase):
         expected = [strategy.convert_tuples_to_dict(all_ones)]
 
         # When
-        result = strategy.solve()
+        result = strategy.solve([], [])
 
         # Then
         self.assertEqual(result, expected)
@@ -131,7 +131,7 @@ class CheckStrategies(unittest.TestCase):
         weights = [1, 0, 1]
         n_layers = 2
         sampler = samplers.MockSampler([])
-        strategy = strat.SmarterStrategy(n_layers, 100, 100, weights, sampler, 4)
+        strategy = strat.SmarterStrategy(n_layers, 100, sampler, 4)
         mock_solve_batch = MagicMock(return_value={(('s_0', 1), ('s_1', 1), ('s_2', 1),)})
         strategy.solve_batch = mock_solve_batch
 
@@ -139,7 +139,7 @@ class CheckStrategies(unittest.TestCase):
         x_data, y_data = c.make_complete_data(actual_circuit, n_layers)
 
         # When
-        strategy.solve()
+        strategy.solve(x_data, y_data)
         calls = mock_solve_batch.call_args_list
         x_calls = [ c for call in calls for c in call[0][0]]
         y_calls = [ c for call in calls for c in call[0][1]]
@@ -154,7 +154,7 @@ class CheckStrategies(unittest.TestCase):
         weights = [1, 0, 1, 0, 1, 0]
         n_layers = 3
         sampler = samplers.MockSampler([])
-        strategy = strat.SmarterStrategy(n_layers, 100, 100, weights, sampler, 1)
+        strategy = strat.SmarterStrategy(n_layers, 100, sampler, 1)
         mock_solve_batch = MagicMock(return_value={(('s_0', 1), ('s_1', 1), ('s_2', 1),)})
         strategy.solve_batch = mock_solve_batch
 
@@ -162,7 +162,7 @@ class CheckStrategies(unittest.TestCase):
         x_data, y_data = c.make_complete_data(actual_circuit, n_layers)
 
         # When
-        strategy.solve()
+        strategy.solve(x_data, y_data)
         calls = mock_solve_batch.call_args_list
         x_calls = [ c for call in calls for c in call[0][0]]
         y_calls = [ c for call in calls for c in call[0][1]]
@@ -177,7 +177,7 @@ class CheckStrategies(unittest.TestCase):
         weights = [1, 0, 1, 0, 1, 0]
         n_layers = 3
         sampler = samplers.MockSampler([])
-        strategy = strat.SmarterStrategy(n_layers, 100, 100, weights, sampler, 2 ** 4)
+        strategy = strat.SmarterStrategy(n_layers, 100, sampler, 2 ** 4)
         mock_solve_batch = MagicMock(return_value={(('s_0', 1), ('s_1', 1), ('s_2', 1),)})
         strategy.solve_batch = mock_solve_batch
 
@@ -185,7 +185,7 @@ class CheckStrategies(unittest.TestCase):
         x_data, y_data = c.make_complete_data(actual_circuit, n_layers)
 
         # When
-        strategy.solve()
+        strategy.solve(x_data, y_data)
         calls = mock_solve_batch.call_args_list
         x_calls = [ c for call in calls for c in call[0][0]]
         y_calls = [ c for call in calls for c in call[0][1]]
