@@ -22,10 +22,10 @@ def sample_size_schedule(n_layers, n_batches, max_reads):
         ensure that we get overlap amongst our partial solution sets.
     """
     scaling = int(2 ** (((n_layers ** 2) + n_layers) / 2)) * ( n_batches ** 2)
-    max_reads = 1024
     return min(scaling, max_reads)
 
 # TODO: should I also do a search through different chain strengths?
+# TODO: try extended J range?
 # ============================================================== #
 max_layers = 4
 n_embedding_tries = 20
@@ -83,7 +83,7 @@ for n_layers in range(1, max_layers):
                 record = Record(record_type, n_layers, weights, solutions, end-start, batch_size, embedding_time, timing, failure)
             except Exception as e:
                 print(e)
-                record = Record(record_type, n_layers, weights, [], 0, batch_size, 0, {}, True)
+                record = Record(record_type, n_layers, weights, [], 0, batch_size, 0, {}, True, str(e))
             finally:
                 records += [record]
 
