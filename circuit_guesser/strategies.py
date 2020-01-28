@@ -44,15 +44,17 @@ class EliminationStrategy:
         self.n_layers = n_layers
         self.n_embedding_tries = n_embedding_tries
 
-        if isinstance(sampler, neal.SimulatedAnnealingSampler) or isinstance(sampler, MockSampler):
-            self.sampler = sampler
-            self.embedding_time = 0
-        else:
+        if isinstance(sampler, DWaveSampler):
+            self.target_graph = sampler.edgelist
             start = time.time()
             embedding = self.make_embedding()
             end = time.time()
             self.sampler = FixedEmbeddingComposite(DWaveSampler(), embedding)
             self.embedding_time = end - start
+        else:
+            self.sampler = sampler
+            self.embedding_time = 0
+            self.target_graph = dnx.chimera_graph(16)
 
     def get_most_complex_polynomial(self):
         x_data = [1 for i in range(self.n_layers + 1)]
@@ -63,13 +65,12 @@ class EliminationStrategy:
         bqm = self.get_most_complex_polynomial()
         edges = [tup for tup in bqm.keys() if len(tup) == 2]
         if len(edges) == 0:
-            return {'s_0': [1000]} # no edges, trivial problem, put the single qubit anywhere.
-        chimera = dnx.chimera_graph(16)
+            return {'s_0': self.target_graph[0][0]} # no edges, trivial problem, put the single qubit anywhere.
 
         best_chain_length = 10000000
         best_embedding = {}
         for i in range(self.n_embedding_tries):
-            embedding = minorminer.find_embedding(edges, chimera)
+            embedding = minorminer.find_embedding(edges, self.target_graph)
             if len(embedding.keys()) == 0:
                 continue # minorminer returns an empty dict when it cant find an embedding
             max_chain_length = max(len(value) for value in embedding.values())
