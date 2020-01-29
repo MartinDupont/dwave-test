@@ -191,9 +191,13 @@ class BruteForceStrategy:
         constraint_satisfaction_problem = c.wrap_with_data(x_data, y_data)
         n_s, _ = c.get_ns_nx(self.n_layers)
 
+        count = 0
         for s_vals in itertools.product([False, True], repeat=n_s):
+            if (count % 64 == 0):
+                print("{} out of {} combinations tried".format(count, 2 ** n_s), end="\r"),
             if constraint_satisfaction_problem(s_vals):
                 return s_vals
+            count += 1
 
         raise RuntimeError("Brute force strategy ran to completion without finding a solution.")
 

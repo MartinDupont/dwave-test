@@ -24,6 +24,18 @@ def sample_size_schedule(n_layers, n_batches, max_reads):
     scaling = int(2 ** (((n_layers ** 2) + n_layers) / 2)) * ( n_batches ** 2)
     return min(scaling, max_reads)
 
+def num_batches_schedule(n_layers):
+    if n_layers < 4:
+        return [1, 2, 4]
+    if n_layers == 4:
+        return [2, 4, 8]
+    elif n_layers == 5:
+        return [8, 16]
+    elif n_layers == 6:
+        return [16, 32]
+    else:
+        return [] # embedding with a reasonable batch size is not feasible at 7 or more layers
+
 # TODO: should I also do a search through different chain strengths?
 # TODO: try extended J range?
 # ============================================================== #
@@ -67,13 +79,12 @@ for n_layers in range(1, max_layers):
         records += [brute_force_record]
 
         print("Beginning with dwave solvers .....")
-        for batch in range(1, n_layers + 2): # with batch, I want to take actual batch sizes of size 2 ** batch. there is N_layers +1 x vars which means range(n_layers + 2 hits that)
-            n_batches = 2 ** (n_layers + 1 - batch)
+        for n_batches in num_batches_schedule(n_layers):  # with batch, I want to take actual batch sizes of size 2 ** batch. there is N_layers +1 x vars which means range(n_layers + 2 hits that)
             n_reads_per_batch = sample_size_schedule(n_layers, n_batches, max_reads_per_batch)
-            batch_size = 2 ** batch
-            strategy = strat.SmarterStrategy(n_layers, n_embedding_tries, sampler, n_batches)
-            print("batch size: {}".format(batch_size))
+            batch_size = int(2 ** (n_layers + 1) / n_batches)
+            print("batch size: {}, reads per batch: {}".format(batch_size, n_reads_per_batch))
             try:
+                strategy = strat.SmarterStrategy(n_layers, n_embedding_tries, sampler, n_batches)
                 start = time.time()
                 solutions = strategy.solve(x_data, y_data, chain_strength=2.0, num_reads=n_reads_per_batch)
                 end = time.time()
