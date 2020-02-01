@@ -86,7 +86,7 @@ for n_layers in range(1, max_layers):
             batch_size = int(2 ** (n_layers + 1) / n_batches)
             print("batch size: {}, n_batches: {}, reads per batch: {}".format(batch_size, n_batches, n_reads_per_batch))
             try:
-                strategy = strat.SmarterStrategy(n_layers, n_embedding_tries, sampler, n_batches)
+                strategy = strat.BatchStrategy(n_layers, n_embedding_tries, sampler, n_batches)
                 start = time.time()
                 solutions = strategy.solve(x_data, y_data, chain_strength=2.0, num_reads=n_reads_per_batch)
                 end = time.time()
