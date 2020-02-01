@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-dirname = os.path.dirname(__file__) + "/embedding_results"
+dirname = os.path.dirname(os.path.abspath(__file__)) + "/embedding_results"
 
 output = pickle.load(open('{}/embeddings.pickle'.format(dirname), "rb" ))
 n_vars_array = pickle.load(open('{}/num_variables.pickle'.format(dirname), "rb" ))

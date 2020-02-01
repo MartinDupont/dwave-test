@@ -53,7 +53,7 @@ dwave_sampler = DWaveSampler()
 output = np.zeros((max_layers - 1, max_layers + 1))
 n_vars_array = np.zeros((max_layers - 1, max_layers + 1))
 
-dirname = os.path.dirname(__file__) + "/battle_results_qbsolv"
+dirname = os.path.dirname(os.path.abspath(__file__)) + "/battle_results_qbsolv"
 now = datetime.datetime.now()
 date_string = now.strftime("%Y_%m_%d_%H:%M")
 records_file = dirname + "/records_{}.pickle".format(date_string)

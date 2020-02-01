@@ -59,7 +59,7 @@ else:
 output = np.zeros((max_layers - 1, max_layers + 1))
 n_vars_array = np.zeros((max_layers - 1, max_layers + 1))
 
-dirname = os.path.dirname(__file__) + "/battle_results"
+dirname = os.path.dirname(os.path.abspath(__file__)) + "/battle_results"
 records_file = dirname + "/records.pickle"
 if os.path.exists(records_file):
     os.remove(records_file)

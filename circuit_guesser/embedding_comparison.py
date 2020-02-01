@@ -19,7 +19,7 @@ output = np.zeros((max_layers - 1, max_layers + 1))
 n_vars_array = np.zeros((max_layers - 1, max_layers + 1))
 times_array = np.zeros((max_layers - 1, max_layers + 1))
 
-dirname = os.path.dirname(__file__) + "/embedding_results"
+dirname = os.path.dirname(os.path.abspath(__file__)) + "/embedding_results"
 embeddings_file = dirname + "/embeddings.pickle"
 if os.path.exists(embeddings_file):
     os.remove(embeddings_file)

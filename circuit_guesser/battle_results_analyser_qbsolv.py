@@ -5,10 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ==================================================================================================================== #
-date_string = '2020_02_01_20:30'
+date_string = '2020_02_01_20:40'
 # ==================================================================================================================== #
 
-dirname = os.path.dirname(__file__) + "/battle_results_qbsolv"
+dirname = os.path.dirname(os.path.abspath(__file__)) + "/battle_results_qbsolv"
 records_file = dirname + "/records_{}.pickle".format(date_string)
 
 records = pickle.load(open(records_file, "rb"))
@@ -76,14 +76,13 @@ plt.show()
 # ======================================= plot QPU times ========================================== #
 
 plt.figure()
-for s in strategies:
-    average_times = []
-    for l in layers:
-        matching = [r for r in dwave_records if r.layers == l and r.strategy == s]
-        times = [r.timing.get('qpu_access_time', False) for r in matching]
-        avg_time = np.mean([t for t in times if t])
-        average_times += [avg_time]
-    plt.plot(layers, average_times, 'x-', label=s)
+average_times = []
+for l in layers:
+    matching = [r for r in dwave_records if r.layers == l and r.strategy == "D_WAVE"]
+    times = [r.timing.get('qpu_access_time', False) for r in matching]
+    avg_time = np.mean([t for t in times if t])
+    average_times += [avg_time]
+plt.plot(layers, average_times, 'x-', label=s)
 
 
 plt.xticks(layers)

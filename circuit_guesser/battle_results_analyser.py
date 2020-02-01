@@ -4,7 +4,7 @@ from record import Record
 import numpy as np
 import matplotlib.pyplot as plt
 
-dirname = os.path.dirname(__file__) + "/battle_results"
+dirname = os.path.dirname(os.path.abspath(__file__)) + "/battle_results"
 records_file = dirname + "/records.pickle"
 
 records = pickle.load(open(records_file, "rb"))
