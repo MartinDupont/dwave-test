@@ -4,8 +4,12 @@ from record import Record
 import numpy as np
 import matplotlib.pyplot as plt
 
+# ==================================================================================================================== #
+date_string = '2020_02_01_20:30'
+# ==================================================================================================================== #
+
 dirname = os.path.dirname(__file__) + "/battle_results_qbsolv"
-records_file = dirname + "/records.pickle"
+records_file = dirname + "/records_{}.pickle".format(date_string)
 
 records = pickle.load(open(records_file, "rb"))
 

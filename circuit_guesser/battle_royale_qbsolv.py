@@ -1,13 +1,14 @@
-import strategies as strat
-import samplers
-import numpy as np
-import pickle
+import datetime
 import os
-import circuits as c
-from dwave.system.samplers import DWaveSampler
-import neal
-import time
+import pickle
 import random
+import time
+
+import circuits as c
+import neal
+import numpy as np
+import strategies as strat
+from dwave.system.samplers import DWaveSampler
 from record import Record
 
 SIMULATED_ANNEALING = 'SIMULATED_ANNEALING'
@@ -39,7 +40,7 @@ def solve_with_strategy(sampler, n_tries, x_data, y_data, weights, record_type, 
 
 
 # ============================================================== #
-max_layers = 5
+max_layers = 4
 n_problems_per_size = 10
 n_tries = 20
 use_real_dwave = False
@@ -53,7 +54,9 @@ output = np.zeros((max_layers - 1, max_layers + 1))
 n_vars_array = np.zeros((max_layers - 1, max_layers + 1))
 
 dirname = os.path.dirname(__file__) + "/battle_results_qbsolv"
-records_file = dirname + "/records.pickle"
+now = datetime.datetime.now()
+date_string = now.strftime("%Y_%m_%d_%H:%M")
+records_file = dirname + "/records.pickle".format(date_string)
 if os.path.exists(records_file):
     os.remove(records_file)
 
