@@ -21,7 +21,7 @@ def sample_size_schedule(n_layers, n_batches, max_reads):
         Increasing the number of samples proportionally to this should, as a rough measure,
         ensure that we get overlap amongst our partial solution sets.
     """
-    scaling = int(2 ** (((n_layers ** 2) + n_layers) / 2)) * ( n_batches ** 2)
+    scaling = int(2 ** (((n_layers ** 2) + n_layers) / 2)) * ( n_batches ** 1)
     return min(scaling, max_reads)
 
 def num_batches_schedule(n_layers):
@@ -38,6 +38,7 @@ def num_batches_schedule(n_layers):
 
 # TODO: should I also do a search through different chain strengths?
 # TODO: try extended J range?
+# Int is not iterable??
 # ============================================================== #
 max_layers = 4
 n_embedding_tries = 20
@@ -82,7 +83,7 @@ for n_layers in range(1, max_layers):
         for n_batches in num_batches_schedule(n_layers):  # with batch, I want to take actual batch sizes of size 2 ** batch. there is N_layers +1 x vars which means range(n_layers + 2 hits that)
             n_reads_per_batch = sample_size_schedule(n_layers, n_batches, max_reads_per_batch)
             batch_size = int(2 ** (n_layers + 1) / n_batches)
-            print("batch size: {}, reads per batch: {}".format(batch_size, n_reads_per_batch))
+            print("batch size: {}, n_batches: {}, reads per batch: {}".format(batch_size, n_batches, n_reads_per_batch))
             try:
                 strategy = strat.SmarterStrategy(n_layers, n_embedding_tries, sampler, n_batches)
                 start = time.time()
@@ -91,7 +92,7 @@ for n_layers in range(1, max_layers):
                 embedding_time = strategy.embedding_time
                 failure = len(solutions) == 0
                 timing = strategy.timing
-                record = Record(record_type, n_layers, weights, solutions, end-start, batch_size, embedding_time, timing, failure)
+                record = Record(record_type, n_layers, weights, solutions, end-start, batch_size, n_batches, embedding_time, timing, failure)
             except Exception as e:
                 print(e)
                 record = Record(record_type, n_layers, weights, [], 0, batch_size, 0, {}, True, str(e))

@@ -10,6 +10,7 @@ import neal
 import math
 from samplers import MockSampler
 import time
+from dwave_qbsolv import QBSolv
 
 def get_max_batch_size(n_batches, n_xs):
     num_rows = 2 ** n_xs
@@ -178,9 +179,6 @@ class SmarterStrategy(EliminationStrategy):
 
         return [ self.convert_tuples_to_dict(sol) for sol in final_solutions]
 
-
-
-
 class BruteForceStrategy:
     def __init__(self, n_layers):
         self.n_layers = n_layers
@@ -200,6 +198,26 @@ class BruteForceStrategy:
             count += 1
 
         raise RuntimeError("Brute force strategy ran to completion without finding a solution.")
+
+class QBSolvStrategy(EliminationStrategy): # TODO: remove eliminationStrategy entirely and replace with a base class.
+    def __init__(self, sampler):
+        self.sampler = sampler
+
+
+    def solve(self, x_data, y_data, **kwargs):
+        offset = 0
+        poly = c.make_polynomial_for_many_datapoints(y_data, x_data)
+        bqm = c.make_bqm(poly, offset)
+        # TODO: possibly map bqm into a different form.
+        response = QBSolv().sample_qubo(bqm, solver=self.sampler) # TODO: optional parameters
+        valid_solutions = []
+        for sample in response.samples:
+            valid = self.check_solution(x_data, y_data, sample)
+            if valid:
+                valid_solutions += [sample]
+
+        return valid_solutions
+
 
 if __name__ == "__main__":
     n_layers = 4
