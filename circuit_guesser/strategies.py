@@ -86,13 +86,24 @@ class EliminationStrategy:
 
     def check_solution(self, x_data, y_data, solution):
         # This is brittle. we depend on the convention that s is solutions.
+        # TODO: change the name to " check single row" or something.
 
         vals = [solution[k] for k in sorted(solution.keys()) if k[0] == "s"]
         circuit = c.make_specific_circuit(vals)
         return circuit(x_data) == (not not y_data)
 
+    def check_multiple_solutions(self, x_rows, y_rows, sample):
+        for x_row, y in zip(x_rows, y_rows):
+            if not self.check_solution(x_row, y, sample):
+                return False
+        return True
+
     def convert_dict_to_tuples(self, input_dict):
+        # TODO: refactor this so its name does what it says (offload stripping onto strip auxiliary variables)
         return tuple([(a, b) for a, b in input_dict.items() if a[0] == "s"])
+
+    def strip_auxiliary_variables(self, input_dict):
+        return {a: b for a, b in input_dict.items() if a[0] == "s"}
 
     def convert_tuples_to_dict(self, tuples):
         return { key: value for key, value in tuples }
@@ -137,12 +148,6 @@ class SmarterStrategy(EliminationStrategy):
         y_rows = [1 for i in range(n_rows)]
         bqm = c.make_polynomial_for_many_datapoints(y_rows, x_rows) # the polynomial with all 1s contains all the edges
         return bqm
-
-    def check_multiple_solutions(self, x_rows, y_rows, sample):
-        for x_row, y in zip(x_rows, y_rows):
-            if not self.check_solution(x_row, y, sample):
-                return False
-        return True
 
     def solve_batch(self, x_rows, y_rows, **kwargs):
         offset = 0
@@ -200,36 +205,46 @@ class BruteForceStrategy:
         raise RuntimeError("Brute force strategy ran to completion without finding a solution.")
 
 class QBSolvStrategy(EliminationStrategy): # TODO: remove eliminationStrategy entirely and replace with a base class.
-    def __init__(self, sampler):
+    def __init__(self, sampler, n_tries=1):
         self.sampler = sampler
+        self.n_tries = n_tries
+        self.timing = {}
 
 
     def solve(self, x_data, y_data, **kwargs):
         offset = 0
         poly = c.make_polynomial_for_many_datapoints(y_data, x_data)
         bqm = c.make_bqm(poly, offset)
-        # TODO: possibly map bqm into a different form.
-        response = QBSolv().sample_qubo(bqm, solver=self.sampler) # TODO: optional parameters
         valid_solutions = []
-        for sample in response.samples:
-            valid = self.check_solution(x_data, y_data, sample)
-            if valid:
-                valid_solutions += [sample]
+        give_up = False
+        count = 0
+
+        while not valid_solutions and not give_up:
+            response = QBSolv().sample(bqm, solver=self.sampler)
+            self.timing = c._merge_dicts_and_add(self.timing, response.info.get('timing', {}))
+            for sample in response.samples():
+                valid = self.check_multiple_solutions(x_data, y_data, sample)
+                if valid:
+                    valid_solutions += [self.strip_auxiliary_variables(sample)]
+            count += 1
+            give_up = count > self.n_tries
+            print("QBSolv strategy tried {} times".format(count), end="\r")
 
         return valid_solutions
 
 
 if __name__ == "__main__":
-    n_layers = 4
+    n_layers = 3
     weights = [0, 0, 0, 0, 1, 1, 1, 0, 0, 1]
+    weights = [0, 0, 0, 0, 0, 0]
     sampler = neal.SimulatedAnnealingSampler()
-    strategy = SmarterStrategy(n_layers, 100, sampler, 4)
-    embedding = strategy.make_embedding()
-    print("-----------------------------------------------------------------")
-    print(embedding)
+    strategy = QBSolvStrategy(sampler)
+    #embedding = strategy.make_embedding()
+    #print("-----------------------------------------------------------------")
+    #print(embedding)
     circuit = c.make_specific_circuit(weights)
     x_data, y_data = c.make_complete_data(circuit, n_layers)
-    results = strategy.solve(x_data, y_data, num_reads=1000)
+    results = strategy.solve(x_data, y_data)
     for r in results:
         print("===========================================")
         sorted_keys = sorted(r.keys())

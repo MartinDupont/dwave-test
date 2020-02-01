@@ -222,9 +222,6 @@ def make_polynomial_for_datapoint(y_val, x_vals, z_start=0):
         auxiliary_bit_tally += len(next_layer)
         s_bit_tally += len(s_vals)
 
-    if auxiliary_bit_tally > 2000:
-        raise RuntimeError("More than 2000 logical qubits. Embedding is impossible.")
-
     # End layer
     z_1 = layer[0]
     z_2 = layer[1]

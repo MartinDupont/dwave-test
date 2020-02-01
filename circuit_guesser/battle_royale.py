@@ -39,6 +39,7 @@ def num_batches_schedule(n_layers):
 # TODO: should I also do a search through different chain strengths?
 # TODO: try extended J range?
 # Int is not iterable??
+# TODO: quantify exactly how biasd my circuits are towards producing zeroes.
 # ============================================================== #
 max_layers = 4
 n_embedding_tries = 20
@@ -95,7 +96,7 @@ for n_layers in range(1, max_layers):
                 record = Record(record_type, n_layers, weights, solutions, end-start, batch_size, n_batches, embedding_time, timing, failure)
             except Exception as e:
                 print(e)
-                record = Record(record_type, n_layers, weights, [], 0, batch_size, 0, {}, True, str(e))
+                record = Record(record_type, n_layers, weights, [], 0, batch_size, 0, 0, {}, True, str(e))
             finally:
                 records += [record]
 
