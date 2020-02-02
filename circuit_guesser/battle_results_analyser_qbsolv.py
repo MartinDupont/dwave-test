@@ -6,14 +6,18 @@ import matplotlib.pyplot as plt
 
 # Starting to do tests with only one try per problem at 11:30 on 02/02.
 # ==================================================================================================================== #
-date_string = '2020_02_01_23:32' # real dwave value
-date_string = '2020_02_02_11:34'
+#date_string = '2020_02_01_23:32' # real dwave value
+#date_string = '2020_02_02_11:34'
+
+date_strings = [ '2020_02_02_11:34', '2020_02_02_12:43', '2020_02_02_13:05']
 # ==================================================================================================================== #
 
 dirname = os.path.dirname(os.path.abspath(__file__)) + "/battle_results_qbsolv"
-records_file = dirname + "/records_{}.pickle".format(date_string)
+records = []
+for date_string in date_strings:
+    records_file = dirname + "/records_{}.pickle".format(date_string)
 
-records = pickle.load(open(records_file, "rb"))
+    records += pickle.load(open(records_file, "rb"))
 
 brute_force_records = []
 dwave_records = []
@@ -82,13 +86,25 @@ plt.figure()
 for s in strategies:
     average_times = []
     for l in layers:
-        matching = [r for r in dwave_records if r.layers == l and r.strategy == s]
-        times = [r.timing.get('qpu_access_time', False) for r in matching]
+        matching = [r for r in records if r.layers == l and r.strategy == s]
+        if s == 'BRUTE_FORCE':
+            times = [r.running_time for r in matching]
+        else:
+            times = [r.timing.get('qpu_access_time', False) for r in matching]
         avg_time = np.mean([t for t in times if t])
         if s == 'D_WAVE':
             avg_time = avg_time/dwave_scaling
         average_times += [avg_time]
     plt.plot(layers, average_times, 'x-', label=s)
+
+# time_for_first = average_times[0]
+# multiplier = 1.0 / time_for_first
+# extrapolated_times = [ t * multiplier for t in average_times]
+# plt.plot(layers, extrapolated_times, 'x-', label='extrapolated')
+#
+# integrated_time = np.sum(extrapolated_times)
+# print('integrated average time for runs in range ({},{}) is: {}'.format(layers[0], layers[-1], integrated_time))
+# print('you can perform {} runs.'.format(55.0/integrated_time))
 
 
 plt.xticks(layers)
