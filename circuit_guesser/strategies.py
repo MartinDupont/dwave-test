@@ -190,7 +190,7 @@ class QBSolvStrategy(BaseStrategy):
                 if valid:
                     valid_solutions += [self.strip_auxiliary_variables(sample)]
             count += 1
-            give_up = count > self.n_tries
+            give_up = count >= self.n_tries
             print("QBSolv strategy tried {} times".format(count), end="\r")
 
         return valid_solutions
