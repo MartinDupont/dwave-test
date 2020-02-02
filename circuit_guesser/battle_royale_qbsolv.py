@@ -5,11 +5,11 @@ import random
 import time
 
 import circuits as c
-import neal
 import numpy as np
 import strategies as strat
 from dwave.system.samplers import DWaveSampler
 from record import Record
+from samplers import TimedSimulatedAnnealingSampler, TimedEmbeddingComposite
 
 SIMULATED_ANNEALING = 'SIMULATED_ANNEALING'
 D_WAVE = 'D_WAVE'
@@ -30,10 +30,12 @@ def solve_with_strategy(sampler, n_tries, x_data, y_data, weights, record_type, 
         solutions = strategy.solve(x_data, y_data)
         end = time.time()
         failure = len(solutions) == 0
-        timing = strategy.timing
+        timing = sampler.timing
+        sampler.reset_timing()
         record = Record(record_type, n_layers, weights, solutions, end - start, timing=timing, failure=failure)
     except Exception as e:
         print(e)
+        sampler.reset_timing()
         record = Record(record_type, n_layers, weights, [], 0, failure=True, failure_message=str(e))
 
     return record
@@ -47,8 +49,8 @@ use_real_dwave = False
 
 # ============================================================== #
 
-simulated_sampler = neal.SimulatedAnnealingSampler()
-dwave_sampler = DWaveSampler()
+simulated_sampler = TimedSimulatedAnnealingSampler()
+dwave_sampler = TimedEmbeddingComposite(DWaveSampler())
 
 output = np.zeros((max_layers - 1, max_layers + 1))
 n_vars_array = np.zeros((max_layers - 1, max_layers + 1))
