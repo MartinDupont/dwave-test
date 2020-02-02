@@ -4,8 +4,10 @@ from record import Record
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Starting to do tests with only one try per problem at 11:30 on 02/02.
 # ==================================================================================================================== #
-date_string = '2020_02_01_20:40'
+date_string = '2020_02_01_23:32' # real dwave value
+date_string = '2020_02_02_11:34'
 # ==================================================================================================================== #
 
 dirname = os.path.dirname(os.path.abspath(__file__)) + "/battle_results_qbsolv"
@@ -74,15 +76,19 @@ plt.show()
 
 
 # ======================================= plot QPU times ========================================== #
+dwave_scaling = 1000000
 
 plt.figure()
-average_times = []
-for l in layers:
-    matching = [r for r in dwave_records if r.layers == l and r.strategy == "D_WAVE"]
-    times = [r.timing.get('qpu_access_time', False) for r in matching]
-    avg_time = np.mean([t for t in times if t])
-    average_times += [avg_time]
-plt.plot(layers, average_times, 'x-', label=s)
+for s in strategies:
+    average_times = []
+    for l in layers:
+        matching = [r for r in dwave_records if r.layers == l and r.strategy == s]
+        times = [r.timing.get('qpu_access_time', False) for r in matching]
+        avg_time = np.mean([t for t in times if t])
+        if s == 'D_WAVE':
+            avg_time = avg_time/dwave_scaling
+        average_times += [avg_time]
+    plt.plot(layers, average_times, 'x-', label=s)
 
 
 plt.xticks(layers)
