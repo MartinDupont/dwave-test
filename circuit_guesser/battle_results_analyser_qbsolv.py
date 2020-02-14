@@ -5,11 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Starting to do tests with only one try per problem at 11:30 on 02/02.
+# at 16:37 i burnt through all my computer time
 # ==================================================================================================================== #
 #date_string = '2020_02_01_23:32' # real dwave value
 #date_string = '2020_02_02_11:34'
 
-date_strings = [ '2020_02_02_11:34', '2020_02_02_12:43', '2020_02_02_13:05']
+date_strings = [ '2020_02_02_11:34', '2020_02_02_12:43', '2020_02_02_13:05', '2020_02_02_14:24', '2020_02_02_18:42', '2020_02_03_22:26', '2020_02_05_22:09', '2020_02_05_22:48']
 # ==================================================================================================================== #
 
 dirname = os.path.dirname(os.path.abspath(__file__)) + "/battle_results_qbsolv"
@@ -42,7 +43,7 @@ layers = sorted(list(set([r.layers for r in records])))
 for s in strategies:
     average_times = []
     for l in layers:
-        matching = [r for r in records if r.layers == l and r.strategy == s and not r.failure]
+        matching = [r for r in records if r.layers == l and r.strategy == s]
         times = [r.running_time for r in matching]
         avg_time = np.mean(times)
         average_times += [avg_time]
@@ -51,15 +52,16 @@ for s in strategies:
 plt.yscale("log")
 plt.xticks(layers)
 plt.title('Total running time vs problem size')
-plt.xlabel('number of layers in problem')
-plt.ylabel('average running time [s]')
+plt.xlabel('Number of layers in problem')
+plt.ylabel('Average running time [s]')
 plt.legend()
+plt.savefig(dirname + '/total_times.png')
 plt.show()
 
 # ===================== plot failures ==========================================#
 
 plt.figure()
-for s in strategies:
+for s in ['D_WAVE', 'SIMULATED_ANNEALING']:
     failure_chances = []
     for l in layers:
         matching = [r for r in dwave_records if r.layers == l and r.strategy == s]
@@ -73,9 +75,10 @@ for s in strategies:
 
 plt.xticks(layers)
 plt.title('Failure chance vs problem size')
-plt.xlabel('number of layers in problem')
-plt.ylabel('probability [%]')
+plt.xlabel('Number of layers in problem')
+plt.ylabel('Probability [%]')
 plt.legend()
+plt.savefig(dirname + '/failure_chance.png')
 plt.show()
 
 
@@ -89,13 +92,15 @@ for s in strategies:
         matching = [r for r in records if r.layers == l and r.strategy == s]
         if s == 'BRUTE_FORCE':
             times = [r.running_time for r in matching]
+            label = 'x--'
         else:
             times = [r.timing.get('qpu_access_time', False) for r in matching]
+            label = 'x-'
         avg_time = np.mean([t for t in times if t])
         if s == 'D_WAVE':
             avg_time = avg_time/dwave_scaling
         average_times += [avg_time]
-    plt.plot(layers, average_times, 'x-', label=s)
+    plt.plot(layers, average_times, label, label=s)
 
 # time_for_first = average_times[0]
 # multiplier = 1.0 / time_for_first
@@ -106,10 +111,12 @@ for s in strategies:
 # print('integrated average time for runs in range ({},{}) is: {}'.format(layers[0], layers[-1], integrated_time))
 # print('you can perform {} runs.'.format(55.0/integrated_time))
 
+plt.yscale("log")
 
 plt.xticks(layers)
 plt.title('Total QPU time vs problem size')
-plt.xlabel('number of layers in problem')
-plt.ylabel('average running time [s]')
+plt.xlabel('Number of layers in problem')
+plt.ylabel('Average time [s]')
 plt.legend()
+plt.savefig(dirname + '/quantum_times.png')
 plt.show()
