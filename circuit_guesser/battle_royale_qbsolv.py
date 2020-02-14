@@ -40,11 +40,11 @@ def solve_with_strategy(sampler, n_tries, x_data, y_data, weights, record_type, 
 
     return record
 
-
 # ============================================================== #
+min_layers = 6
 max_layers = 7
-n_problems_per_size = 10
-n_tries = 20
+n_problems_per_size = 20
+n_tries = 1
 use_real_dwave = False
 
 # ============================================================== #
@@ -63,7 +63,7 @@ if os.path.exists(records_file):
     os.remove(records_file)
 
 records = []
-for n_layers in range(2, max_layers):
+for n_layers in range(min_layers, max_layers):
     n_s, _ = c.get_ns_nx(n_layers)
     for problem in range(n_problems_per_size):
         weights = generate_random_weights(n_s)
