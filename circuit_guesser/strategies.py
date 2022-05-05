@@ -116,6 +116,7 @@ class BatchStrategy(BaseStrategy):
         offset = 0
         poly = c.make_polynomial_for_many_datapoints(y_rows, x_rows)
         bqm = c.make_bqm(poly, offset)
+        a = bqm.quadratic.keys()
         result = self.sampler.sample(bqm, **kwargs)
         self.timing = c._merge_dicts_and_add(self.timing, result.info.get('timing', {}))
         solution_set = set()
@@ -200,7 +201,7 @@ if __name__ == "__main__":
     n_layers = 3
     weights = [0, 0, 0, 0, 1, 1, 1, 0, 0, 1]
     weights = [0, 0, 0, 0, 0, 0]
-    sampler = neal.SimulatedAnnealingSampler()
+    sampler = DWaveSampler()
     strategy = BatchStrategy(n_layers, 100, sampler, 4)
     # embedding = strategy.make_embedding()
     # print("-----------------------------------------------------------------")

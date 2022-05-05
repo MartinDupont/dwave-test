@@ -1,0 +1,79 @@
+notes:
+
+* Architecture means that not all ising problems can be directly represented in the Chimera. However ising problems can be mapped to the chimera by merging qubits.
+* "Alternative formulations may have different implications for performance." ... I would like specifics.
+* Formulating production-scale problems in D-wave is possibly out of reach of an average-joe software developer who may not have a strong mathematics background. Not nearly like neural networks, where you can just put some neurons together using tensorflow and press the "go" button. 
+* There is an SDK!, not just an API. ++ points
+* Their minor embedding algorithm is heuristic. which means I guess (to be later confirmed), that it isn't guaranteed to find an optimal embedding or anything.
+* sdk is python only. Makes sense given the target market. Not expecting QM optimizers to be implemented in consumer products.
+* Although the dWave only has 2000 qubits, it can barely fit the 4-colour map colouring of the US onto its system, due to minor embedding and constraints etc.
+* There exists a package "dwavebinarycsp" which automatically maps constraint satisfaction problems to ising problems.
+* Applications: Optimization, CSPs, random sampling
+
+* It performed badly on CSPs due to the necessity of finding the perfect ground state. CSPs are not optimization problems. If my CSP solver does not end up in the perfect ground state, the problem has not been solved. Furthermore, the bad mapping of the problem onto the hardware probably also hindered it. 
+* Different minor embeddings do deliver different performance. Embeddings which split less logical qubits across physical qubits are better. 
+* Embedding worst case: 33 logical bits fit into 512 physical bits. 
+* Pro: a lot of options available to tune the annealing schedule etc. Con: its probably there cause you need it. 
+* Documentation is good!
+* Errors can be pretty big. for coupling J on order 1, 1 sigma error is 0.015 = 1.5%. For large problems, can be larger than the difference between Js in problem (double check).
+* specifiying 1000 reads does not get you 1000 reads, but sometimes less.
+* Each run is done with a single minor embedding! That means that big runs can be worse than many small runs!!!
+* A good idea is to generate multiple embeddings, then select the one that has the smallest number of physical bits.
+* "it may not function as expected for constraints of over 8 variables." == it doesnt function for constraints of over 8 variables.
+* There has been NO scaling advantage for the Dwave demonstrated so far.
+* Annealers are great for getting approximate/ "good enough" solutions, but worse at finding perfect optima.
+* Minorminor optional parameters arent used.
+* Documentation is bad. Many classes don't have documentation. Qbsolv documentation lists keyword args which are not present in the actual class.
+* Other problem: different classes of solvers don't deliver consistent output types.
+* The actual DWAVE does not have a perfect chimera architecture!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Its missing links!
+* The documentation is straight-up wrong in many cases.
+* Return types are definitely inconsistent. Response type (betting) sometimes doesn't give back timing info even when run on a quantum computer!!!
+* The time to sample a problem is minute compared to the time taken to program the Dwave (could be better in the future)?
+
+	{'qpu_access_time': 962090, 'qpu_sampling_time': 31185, 'qpu_anneal_time_per_sample': 1980, 'qpu_readout_time_per_sample': 27126, 'qpu_access_overhead_time': 401721, 'qpu_programming_time': 930916, 'qpu_delay_time_per_sample': 2079, 'total_post_processing_time': 38218, 'post_processing_overhead_time': 38218, 'total_real_time': 962090, 'run_time_chip': 31185, 'anneal_time_per_run': 1980, 'readout_time_per_run': 27126}
+
+
+* BIology paper essentially just tests it's ability to do linear regression with binary weights. Higgs paper is also linear regression. Volkswagen paper is sortof legit, in that they perform the key step on the d-wave, but curically they don't compare its performance to other algorithms (and it is a collab with D-wave employees themselves).
+
+questions:
+* does the process of minor embedding reduce accuracy? Because a merged pair of qubits can end up in an impossible state. Does that mean that it is worth it to formulate a problem that doesn't need embedding?
+* Are all ising problems embeddable into the chimera? Is there a proof?
+* Although Dwave maps my ising model onto their circuit, can they map my problem onto an ising model?
+* What happens when your ising problem can't be embedded?
+* What is the smallest graph N such that I can overload the Dwave?
+
+Production ready?
+* used for real science: (simulating ising-like system) https://science.sciencemag.org/content/361/6398/162
+* Far ahead of other quantum computing companies in the maturity of their technology.
+
+
+TODOS for code:
+* Plot chain length vs problem size!!!!!!! (for other strategy. this one has fixed chain length)
+* Find a way of visualizing the embeddings!!! (or, find structure in it)
+* Save a record of the solver used, and the TOTAL RUNNING TIME ON THE QPU
+* Second strategy: add all the polynomials together! (auxilliary variables should NOT be added!).
+
+Misc.
+* What is that quanta paper that solved a graph-embedding problem with really simple matrix algebra???
+* Find the guaranteed minimum of the maximum number of physical qubits representing a single qubit across the whole graph.  
+* Try the CSP problem with a longer anneal time! 
+* Track down the dwave guys talk!
+* Track down the controversy where people weren't sure that it was even doing anything quantum at all. 
+* Managed about 3 layers with a second of compute time.
+
+
+
+Errors:
+
+source edge (z_1, s_2) is not represented by any target edge
+chain for z_14 contains a node label False not contained in the target graph
+'int' object is not iterable
+
+
+/home/dupontm/Documents/Repositories/TNG/tng-skill/venv/lib/python3.7/site-packages/dwave/embedding/transforms.py:348: RuntimeWarning: Mean of empty slice.
+  vectors['chain_break_fraction'] = broken_chains(target_sampleset, chains).mean(axis=1)[idxs]
+Traceback (most recent call last):
+  File "python/dwave_qbsolv/qbsolv_binding.pyx", line 66, in dwave_qbsolv.qbsolv_binding.run_qbsolv.dimod_callback
+  File "/home/dupontm/Documents/Repositories/TNG/tng-skill/venv/lib/python3.7/site-packages/dimod/views/samples.py", line 151, in __next__
+    raise StopIteration
+StopIteration

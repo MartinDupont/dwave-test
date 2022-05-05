@@ -1,7 +1,6 @@
 .idea
 ocean
 *.pickle
-*.png
 *.iml
 
 __pycache__/
